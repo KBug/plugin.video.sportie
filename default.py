@@ -2851,7 +2851,7 @@ def PLAYLINK(name,url,iconimage):
             dialog.ok(AddonTitle, "[COLOR blue]Sorry there was a problem playing this link.[/COLOR]","[COLOR blue]Sportie has plenty of content to choose from :-D[/COLOR]")
             quit()
 
-    name = name.replace('  ','')
+    name = urllib.quote_plus(name)
     if not 'f4m'in url:
         if '.m3u8' in url:
             url = 'plugin://plugin.video.f4mTester/?streamtype=HLSRETRY&amp;name='+name+'&amp;url='+url+'&amp;iconImage='+icon  

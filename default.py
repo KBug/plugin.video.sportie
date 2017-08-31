@@ -1159,18 +1159,19 @@ def GET_GOALTOGOALS_LINKS(name,url,iconimage):
 
 def SCRAPE_247HD():
 
-    url = 'http://www.247hd.info'
+    url = 'http://www.genti.stream/'
 
     link = open_url(url).replace('\n', '').replace('\r','')
+    link = link.replace('<tr>','</tr><tr>').replace('</tbody>','</tr></tbody>')
     match = re.compile ('<tr>(.+?)</tr>').findall(link)
     for items in match:
         if "href" in items:
-            time = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[0]
-            comp = re.compile('<td><strong>(.+?)</strong></td>',re.DOTALL).findall(items)[0]
-            teams = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[2]
+            time = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[0].strip()
+            comp = re.compile('<td><strong>(.+?)</strong></td>',re.DOTALL).findall(items)[0].strip()
+            teams = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[2].strip()
             links = re.compile ('<td><a href="(.+?)">(.+?)<a/></td>').findall(items)
             for url,quality in links:
-                addLink("[COLOR blue]" + comp + " | [/COLOR][COLOR white][B]" + teams.title() + "[/B][/COLOR][COLOR blue]" + time + "[/COLOR]",url,4,icon,fanarts,'')
+                addLink("[COLOR blue]" + comp + " | [/COLOR][COLOR white][B]" + teams.title() + " [/B][/COLOR][COLOR blue]| " + time + "[/COLOR]",url,4,icon,fanarts,'')
 
 def SCRAPE_SPORTSMAMA_HOME():
 

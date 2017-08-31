@@ -1159,18 +1159,19 @@ def GET_GOALTOGOALS_LINKS(name,url,iconimage):
 
 def SCRAPE_247HD():
 
-    url = 'http://www.247hd.info'
+    url = 'http://www.genti.stream/'
 
     link = open_url(url).replace('\n', '').replace('\r','')
+    link = link.replace('<tr>','</tr><tr>').replace('</tbody>','</tr></tbody>')
     match = re.compile ('<tr>(.+?)</tr>').findall(link)
     for items in match:
         if "href" in items:
-            time = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[0]
-            comp = re.compile('<td><strong>(.+?)</strong></td>',re.DOTALL).findall(items)[0]
-            teams = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[2]
+            time = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[0].strip()
+            comp = re.compile('<td><strong>(.+?)</strong></td>',re.DOTALL).findall(items)[0].strip()
+            teams = re.compile('<td>(.+?)</td>',re.DOTALL).findall(items)[2].strip()
             links = re.compile ('<td><a href="(.+?)">(.+?)<a/></td>').findall(items)
             for url,quality in links:
-                addLink("[COLOR blue]" + comp + " | [/COLOR][COLOR white][B]" + teams.title() + "[/B][/COLOR][COLOR blue]" + time + "[/COLOR]",url,4,icon,fanarts,'')
+                addLink("[COLOR blue]" + comp + " | [/COLOR][COLOR white][B]" + teams.title() + " [/B][/COLOR][COLOR blue]| " + time + "[/COLOR]",url,4,icon,fanarts,'')
 
 def SCRAPE_SPORTSMAMA_HOME():
 
@@ -1220,12 +1221,14 @@ def SCRAPE_SPORTSMAMA_CHANNELS():
 def SCRAPE_BIGSPORTS(url):
 
     try:
-        link=open_url("http://bigsports.me")
-        livegame=re.compile("<td><strong>(.+?)</strong></td>.+?<a target=.+? href=(.+?) class=.+?",re.DOTALL).findall(link)
-        for game,url in livegame:
-            url=url.replace("'",'')
-            url = 'plugin://plugin.video.SportsDevil/?mode=1&amp;item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
-            addLink('[COLOR white]' + game + '[/COLOR]',url,2,icon,fanarts,'')
+        link = open_url('http://livetv.sc/')
+        links = re.compile('Schedule -->(.+?)end grid',re.DOTALL).findall(link)[0]
+        livegame = re.compile('class="menu-img.+?<td>[^\d]+([\d\/]+).+?time">[^\d]+([\d:]+).+?<td>.+?<td>[^\w]+([^<]+).+?href="([^"]+)">[^\w]+([^<]+)',re.DOTALL).findall(links)
+        for date,time,comp,url,teams in livegame:
+            comp = comp.strip()
+            teams = teams.strip()
+            url = 'plugin://plugin.video.SportsDevil/?mode=1&item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
+            addLink("[COLOR blue]%s | [/COLOR][COLOR white][B]%s [/B][/COLOR][COLOR blue]| %s - %s GMT +1[/COLOR]"%(comp,teams,date,time),url,4,icon,fanarts,'')
     except:
         dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
         quit()

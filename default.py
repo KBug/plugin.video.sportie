@@ -1061,7 +1061,7 @@ def LIVE_TV():
     for url in urls:
         response = open_url_m3u(base64.b64decode(url))
         response = response.replace('#AAASTREAM:','#A:').replace('#EXTINF:','#A:').replace('</h4>','').replace('<h4>','')
-        matches=re.compile('^#A:-?[0-9]*(.*?),(.*?)\n\n(.*?)$',re.I+re.M+re.U+re.S).findall(response)
+        matches=re.compile('#A:-?[0-9]*(.*?),(.*?)(?:<br\s\/>)?\n(.*?)(?:<|\n)',re.I+re.M+re.U+re.S).findall(response)
 
         for params, display_name, url2 in matches:
             display_name = display_name.lstrip()
@@ -2860,11 +2860,11 @@ def PLAYLINK(name,url,iconimage):
             url = 'plugin://plugin.video.f4mTester/?streamtype=HLSRETRY&amp;name='+name+'&amp;url='+url+'&amp;iconImage='+icon  
         elif '.ts'in url:
             url = 'plugin://plugin.video.f4mTester/?streamtype=TSDOWNLOADER&amp;name='+name+'&amp;url='+url+'&amp;iconImage='+icon  
-    else: url = url + '|User-Agent=Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+    #else: url = url + '|User-Agent=Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
     
     import urlresolver
     if urlresolver.HostedMediaFile(url).valid_url(): 
-        stream_url = urlresolver.HostedMediaFile(url).get_url()
+        stream_url = urlresolver.HostedMediaFile(url).resolve()
         liz = xbmcgui.ListItem(name,iconImage=icon, thumbnailImage=icon)
         liz.setPath(stream_url)
         dp.close()

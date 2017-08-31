@@ -1221,12 +1221,14 @@ def SCRAPE_SPORTSMAMA_CHANNELS():
 def SCRAPE_BIGSPORTS(url):
 
     try:
-        link=open_url("http://bigsports.me")
-        livegame=re.compile("<td><strong>(.+?)</strong></td>.+?<a target=.+? href=(.+?) class=.+?",re.DOTALL).findall(link)
-        for game,url in livegame:
-            url=url.replace("'",'')
-            url = 'plugin://plugin.video.SportsDevil/?mode=1&amp;item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
-            addLink('[COLOR white]' + game + '[/COLOR]',url,2,icon,fanarts,'')
+        link = open_url('http://livetv.sc/')
+        links = re.compile('Schedule -->(.+?)end grid',re.DOTALL).findall(link)[0]
+        livegame = re.compile('class="menu-img.+?<td>[^\d]+([\d\/]+).+?time">[^\d]+([\d:]+).+?<td>.+?<td>[^\w]+([^<]+).+?href="([^"]+)">[^\w]+([^<]+)',re.DOTALL).findall(links)
+        for date,time,comp,url,teams in livegame:
+            comp = comp.strip()
+            teams = teams.strip()
+            url = 'plugin://plugin.video.SportsDevil/?mode=1&item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
+            addLink("[COLOR blue]%s | [/COLOR][COLOR white][B]%s [/B][/COLOR][COLOR blue]| %s - %s GMT +1[/COLOR]"%(comp,teams,date,time),url,4,icon,fanarts,'')
     except:
         dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
         quit()

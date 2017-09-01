@@ -2,6 +2,7 @@ import xbmc,xbmcaddon,xbmcgui,xbmcplugin,urllib,urllib2,os,re,sys,hashlib,time
 import datetime
 import httplib2
 import base64,time
+import kodi
 from HTMLParser import HTMLParser
 from resources.lib.modules import plugintools
 from resources.lib.modules import regex
@@ -9,7 +10,6 @@ from resources.lib.modules import checker
 from resources.lib.modules import dom_parser
 from resources.lib.modules import log_utils
 from resources.lib.modules import cache_dir
-from resources.lib.modules import kodi
 from resources.lib.modules import soccerstreams
 from resources.lib.modules import resolvable
 
@@ -156,6 +156,8 @@ def ENABLE_DB_ADDON(id):
         quit()
         
 def GetMenu():
+
+    addLink(kodi.giveColor(kodi.countGitHubIssues('https://github.com/Colossal1/plugin.video.sportie/issues'),'blue',True) + kodi.giveColor(' | Click To View Issues','white',True),'null',994,icon,fanarts,'')
 
     try:
         checkrtmp = plugintools.get_setting("check_rtmp")
@@ -1179,44 +1181,35 @@ def SCRAPE_SPORTSMAMA_HOME():
 
     addDir("[COLOR white][B]Live Channels[/B][/COLOR]",url,311,icon,fanarts,'')
 
-    link = open_url(url).replace('\n', '').replace('\r','')
-    match = re.compile ('<div class="schedule">(.+?)<br><div id="pagination">').findall(link)[0]
-    match2 = re.compile ('<a(.+?)</a>').findall(match)
-    for items in match2:
-        fail = "0"
-        url = re.compile('href="(.+?)">',re.DOTALL).findall(items)[0]
-        try:
-            day = re.compile('<span class="day">(.+?)</span>',re.DOTALL).findall(items)[0]
-        except: day = "0"
-        #try:
-        hour = re.compile('<span class="hours">(.+?)</span>',re.DOTALL).findall(items)[0]
-        #except: fail = "1"
-        #try:
-        min = re.compile('<span class="minutes">(.+?)</span>',re.DOTALL).findall(items)[0]
-        #except: fail = "1"
-        #try:
-        sec = re.compile('<span class="seconds">(.+?)</span>',re.DOTALL).findall(items)[0]
-        #except: fail = "1"
-        home = re.compile('<span>(.+?)</span>',re.DOTALL).findall(items)[0]
-        away = re.compile('<span>(.+?)</span>',re.DOTALL).findall(items)[1]
-        name = home + ' vs ' + away
-        if fail == "0":
-            if day != "0":
-                addLink("[COLOR blue]" + day + ":" + hour  + ":" + min  + ":" + sec + " Left To Start[/COLOR]- [COLOR white]" + name + "[/COLOR]",url,4,icon,fanarts,'')
-            else: addLink("[COLOR blue]" + hour  + ":" + min  + ":" + sec + " Left To Start [/COLOR]- [COLOR white]" + name.title() + "[/COLOR]",url,4,icon,fanarts,'')
-        else: addLink(name,url,4,icon,fanarts,'')
+    c = open_url(url).replace('\n', '').replace('\r','')
+    r = dom_parser.parse_dom(c, 'tr', {'data-toggle': 'collapse'})
+    r = [(dom_parser.parse_dom(i, 'span', {'class': 'date'}), \
+          dom_parser.parse_dom(i, 'div', {'id': re.compile('time\d+')}), \
+          dom_parser.parse_dom(i, 'td', {'class': 'home-league'}), \
+          dom_parser.parse_dom(i, 'td', {'class': 'home-team'}), \
+          dom_parser.parse_dom(i, 'td', {'class': 'home-away'}), \
+          dom_parser.parse_dom(i, 'a', req='href')) \
+          for i in r if i]
+    r = [(i[0][0].content, re.sub('<.+?</.+?>', '', i[1][0].content).strip(), \
+          i[2][0].content, re.sub('<.+?>', '', i[3][0].content).strip(), \
+          re.sub('<.+?>', '', i[4][0].content).strip(), i[5][-1].attrs['href']) for i in r if i[4]]
+      
+    if r:
+        for i in r:
+            name = i[3] + ' vs ' + i[4] 
+            addLink("[COLOR blue]" + i[0]  + "-" + i[1]  + "[/COLOR]- [COLOR white]" + name.title() + "[/COLOR] - " + i[2],i[5],4,icon,fanarts,'')
     
 def SCRAPE_SPORTSMAMA_CHANNELS():
 
     url = 'http://mamahd.com/index.html'
 
-    link = open_url(url).replace('\n', '').replace('\r','')
-    match = re.compile ('<div class="standard row channels">(.+?)</div>').findall(link)[0]
-    match2 = re.compile ('<a(.+?)</a>').findall(match)
-    for items in match2:
-        url = re.compile('href="(.+?)">',re.DOTALL).findall(items)[0]
-        name = re.compile('<span>(.+?)</span>',re.DOTALL).findall(items)[0]
-        addLink(name.title(),url,4,icon,fanarts,'')
+    c = open_url(url).replace('\n', '').replace('\r','')
+    r = dom_parser.parse_dom(c, 'ul', {'class': 'dropdown-menu'})
+    r = dom_parser.parse_dom(r[1].content, 'a', req=['href','title'])
+    r = [(i.attrs['title'], i.attrs['href']) for i in r if i]
+    if r:
+        for i in r:
+            addLink(i[0].title(),i[1],4,icon,fanarts,'')
 
 def SCRAPE_BIGSPORTS(url):
 
@@ -2899,6 +2892,26 @@ def TEXTBOXES(header=None,announce=None):
     while xbmc.getCondVisibility('Window.IsVisible(10147)'):
         time.sleep(.5)
 
+def TEXTBOXES_GIT(header=None,announce=None):
+    class TextBox():
+        WINDOW=10147
+        CONTROL_LABEL=1
+        CONTROL_TEXTBOX=5
+        def __init__(self,*args,**kwargs):
+            xbmc.executebuiltin("ActivateWindow(%d)" % (self.WINDOW, )) # activate the text viewer window
+            self.win=xbmcgui.Window(self.WINDOW) # get window
+            xbmc.sleep(500) # give window time to initialize
+            self.setControls()
+        def setControls(self):
+            if header == None: self.win.getControl(self.CONTROL_LABEL).setLabel(sys.args(0)) # set heading
+            else: self.win.getControl(self.CONTROL_LABEL).setLabel(header) # set heading
+            self.win.getControl(self.CONTROL_TEXTBOX).setText(str(announce))
+            return
+    announce = announce.encode('utf-8')
+    TextBox()
+    while xbmc.getCondVisibility('Window.IsVisible(10147)'):
+        time.sleep(.5)
+        
 def GET_RESPONSE(url):
 
     http_interface = httplib2.Http(timeout=1.0)
@@ -3086,6 +3099,50 @@ def addLink(name, url, mode, iconimage, fanart, description=''):
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=False)
     return ok
 
+def GITHUB_ISSUES():
+
+    choice = dialog.yesno("[COLOR red]Please select an option[/COLOR]", "Would you like to view open issues or closed issues?",yeslabel='Closed',nolabel='Open')
+
+    import githubissues
+    if choice == 0: name = 'open'
+    elif choice == 1: name = 'closed'
+    else: quit()
+    githubissues.run('Colossal1/plugin.video.sportie', '%s' % name)
+    file = xbmc.translatePath(os.path.join(kodi.datafolder, '%s-issues-%s.csv' % (kodi.get_id(),name)))
+    
+    with open(file,mode='r')as f: txt = f.read()
+    items = re.findall('<item>(.+?)</item>', txt, re.DOTALL)
+    if (not items) or (len(items) < 1):
+        msg_text = kodi.giveColor('No %s issues with Sportie at this time.' % name.title(),'blue',True)
+    else:
+        msg_text = kodi.giveColor('%s Issues with Sportie\n' % name.title(),'blue',True) + kodi.giveColor('Report Issues @ https://github.com/Colossal1/plugin.video.sportie/issues','white',True) + '\n---------------------------------\n\n'
+        for item in items:
+            try: id = re.findall('<id>([^<]+)', item)[0]
+            except: id = 'Unknown'
+            try: user = re.findall('<username>([^<]+)', item)[0]
+            except: user = 'Unknown'
+            try: label = re.findall('<label>([^<]+)', item)[0]
+            except: label = 'Unknown'
+            try: title = re.findall('<title>([^<]+)', item)[0]
+            except: title = 'Unknown'
+            try: body = re.findall('<body>([^<]+)', item)[0]
+            except: body = 'Unknown'
+            try: 
+                created = re.findall('<created>([^<]+)', item)[0]
+                date,time = created.split('T')
+            except:
+                date = 'Unknown'
+                time = 'Unknwon'
+            msg_text += '[B]ID: %s | Label: %s \nBy: %s on %s at %s[/B] \n\nTitle: %s \nMessage %s \n\n---------------------------------\n\n' \
+                         % (id, \
+                            kodi.githubLabel(label), \
+                            user, \
+                            date, \
+                            time.replace('Z',''), \
+                            title, \
+                            body)
+    TEXTBOXES_GIT('Sportie Issues', msg_text)
+
 # Run Starter Def
 STARTER()
 
@@ -3149,6 +3206,7 @@ elif mode==320:REDDIT_MAIN()
 elif mode==321:REDDIT_ADD()
 elif mode==322:REDDIT_SUGGESTED()
 elif mode==323:REDDIT_REMOVE(name,url)
+elif mode==994:GITHUB_ISSUES()
 elif mode==995:TEXTBOXES(name,url)
 elif mode==996:ENABLE_DB_ADDON(url)
 elif mode==997:

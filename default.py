@@ -9,6 +9,7 @@ from resources.lib.modules import regex
 from resources.lib.modules import checker
 from resources.lib.modules import dom_parser
 from resources.lib.modules import log_utils
+from resources.lib.modules import cache
 from resources.lib.modules import cache_dir
 from resources.lib.modules import soccerstreams
 from resources.lib.modules import resolvable
@@ -51,7 +52,7 @@ def STARTER():
 def SOCCERSTREAMS_CHECK():
 
     try:
-        supported=open_url_ss(base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L3JEQXJIMkpI'))
+        supported=cache.get(open_url_ss,4,base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L3JEQXJIMkpI'))
         
         file = xbmc.translatePath(os.path.join('special://home/addons/' + addon_id , 'resources/lib/modules/soccerstreams.py'))
 
@@ -67,7 +68,7 @@ def SOCCERSTREAMS_CHECK():
                 kodi.notify(msg='SoccerStreams Scraper Updated.', duration=7500, sound=True)
     except:
         try:
-            supported=open_url_ss(base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L3JEQXJIMkpI'))
+            supported=cache.get(open_url_ss,4,base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L3JEQXJIMkpI'))
             file = xbmc.translatePath(os.path.join('special://home/addons/' + addon_id , 'resources/lib/modules/soccerstreams.py'))
             comparefile = file
             r = open(comparefile)
@@ -82,7 +83,7 @@ def SOCCERSTREAMS_CHECK():
 def RESOLVABLE_CHECK():
 
     try:
-        supported=open_url_ss(base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L2VyY3cxSHAy'))
+        supported=cache.get(open_url_ss,4,base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L2VyY3cxSHAy'))
         
         file = xbmc.translatePath(os.path.join('special://home/addons/' + addon_id , 'resources/lib/modules/resolvable.py'))
 
@@ -98,7 +99,7 @@ def RESOLVABLE_CHECK():
                 kodi.notify(msg='Resolver Checker Updated.', duration=7500, sound=True)
     except:
         try:
-            supported=open_url_ss(base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L2VyY3cxSHAy'))
+            supported=cache.get(open_url_ss,4,base64.b64decode('aHR0cHM6Ly9wYXN0ZWJpbi5jb20vcmF3L2VyY3cxSHAy'))
             file = xbmc.translatePath(os.path.join('special://home/addons/' + addon_id , 'resources/lib/modules/resolvable.py'))
             comparefile = file
             r = open(comparefile)
@@ -179,7 +180,7 @@ def GetMenu():
     else:
         SOCCERSTREAMS_CHECK()
         RESOLVABLE_CHECK()
-        link=open_url(baseurl)
+        link=cache.get(open_url,4,baseurl)
         url2 = baseurl
         link=link.replace('\n','').replace('\r','').replace('<fanart></fanart>','<fanart>x</fanart>').replace('<thumbnail></thumbnail>','<thumbnail>x</thumbnail>').replace('<utube>','<link>https://www.youtube.com/watch?v=').replace('</utube>','</link>')#.replace('></','>x</')
         match= re.compile('<item>(.+?)</item>').findall(link)
@@ -1161,9 +1162,9 @@ def GET_GOALTOGOALS_LINKS(name,url,iconimage):
 
 def SCRAPE_247HD():
 
-    url = 'http://www.genti.stream/'
+    link = cache.get(open_url,1,'http://www.genti.stream/')
 
-    link = open_url(url).replace('\n', '').replace('\r','')
+    link = link.replace('\n', '').replace('\r','')
     link = link.replace('<tr>','</tr><tr>').replace('</tbody>','</tr></tbody>')
     match = re.compile ('<tr>(.+?)</tr>').findall(link)
     for items in match:
@@ -1177,11 +1178,11 @@ def SCRAPE_247HD():
 
 def SCRAPE_SPORTSMAMA_HOME():
 
-    url = 'http://mamahd.com/index.html'
+    link = cache.get(open_url,1,'https://mamahd.tv/')
 
     addDir("[COLOR white][B]Live Channels[/B][/COLOR]",url,311,icon,fanarts,'')
 
-    c = open_url(url).replace('\n', '').replace('\r','')
+    c = link.replace('\n', '').replace('\r','')
     r = dom_parser.parse_dom(c, 'tr', {'data-toggle': 'collapse'})
     r = [(dom_parser.parse_dom(i, 'span', {'class': 'date'}), \
           dom_parser.parse_dom(i, 'div', {'id': re.compile('time\d+')}), \
@@ -1197,51 +1198,107 @@ def SCRAPE_SPORTSMAMA_HOME():
     if r:
         for i in r:
             name = i[3] + ' vs ' + i[4] 
-            addLink("[COLOR blue]" + i[0]  + "-" + i[1]  + "[/COLOR]- [COLOR white]" + name.title() + "[/COLOR] - " + i[2],i[5],4,icon,fanarts,'')
+            addLink("[COLOR blue]" + i[0]  + "-" + i[1]  + "[/COLOR]- [COLOR white]" + name.title() + "[/COLOR] - " + i[2],i[5],309,icon,fanarts,'')
     
 def SCRAPE_SPORTSMAMA_CHANNELS():
 
-    url = 'http://mamahd.com/index.html'
+    link = cache.get(open_url,1,'https://mamahd.tv/')
 
-    c = open_url(url).replace('\n', '').replace('\r','')
+    c = link.replace('\n', '').replace('\r','')
     r = dom_parser.parse_dom(c, 'ul', {'class': 'dropdown-menu'})
     r = dom_parser.parse_dom(r[1].content, 'a', req=['href','title'])
     r = [(i.attrs['title'], i.attrs['href']) for i in r if i]
     if r:
         for i in r:
-            addLink(i[0].title(),i[1],4,icon,fanarts,'')
+            addLink(i[0].title(),i[1],309,icon,fanarts,'')
 
-def SCRAPE_BIGSPORTS(url):
+def PLAY_SPORTSMAMA(name,url,iconimage):
 
     try:
-        link = open_url('http://livetv.sc/')
+        link = open_url(url)
+        url = re.compile('href="([^"]+)">Watch').findall(link)[0]
+        url = 'plugin://plugin.video.SportsDevil/?mode=1&item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
+        PLAYSD(name,url,iconimage)
+    except:
+        dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
+        quit()
+            
+def SCRAPE_BIGSPORTS(url):
+
+    addDir("[COLOR white][B]Live Channels[/B][/COLOR]",url,299,icon,fanarts,'')
+    
+    try:
+        link = cache.get(open_url,1,'http://livetv.sc/')
         links = re.compile('Schedule -->(.+?)end grid',re.DOTALL).findall(link)[0]
         livegame = re.compile('class="menu-img.+?<td>[^\d]+([\d\/]+).+?time">[^\d]+([\d:]+).+?<td>.+?<td>[^\w]+([^<]+).+?href="([^"]+)">[^\w]+([^<]+)',re.DOTALL).findall(links)
         for date,time,comp,url,teams in livegame:
             comp = comp.strip()
             teams = teams.strip()
-            url = 'plugin://plugin.video.SportsDevil/?mode=1&item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
-            addLink("[COLOR blue]%s | [/COLOR][COLOR white][B]%s [/B][/COLOR][COLOR blue]| %s - %s GMT +1[/COLOR]"%(comp,teams,date,time),url,4,icon,fanarts,'')
+            addLink("[COLOR blue]%s | [/COLOR][COLOR white][B]%s [/B][/COLOR][COLOR blue]| %s - %s GMT +1[/COLOR]"%(comp,teams,date,time),url,300,icon,fanarts,'')
+    except:
+        dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
+        quit()
+        
+def SCRAPE_BIGSPORTS_CHANNELS(url):
+
+    link = cache.get(open_url,1,'http://livetv.sc/')
+    links = re.compile('sports-channels-inner(.+?)end grid',re.DOTALL).findall(link)[0]
+    channels = re.compile('href="([^"]+)"\stitle="(?!Channels)([^"]+)"').findall(links)
+    for url,name in channels:
+        addLink(name,url,300,icon,fanarts,'')
+
+
+def SCRAPE_BIGSPORTS_GET_LINKS(name,url,iconimage):
+
+    try:
+        link = open_url(url)
+        url = re.compile('<iframe.+?src="([^"]+)"').findall(link)[0]
+        link = open_url(url)
+        link = re.compile('<iframe.+?src="([^"]+)"').findall(link)[0]
+        url = 'plugin://plugin.video.SportsDevil/?mode=1&item=catcher%3dstreams%26url=' + link + '%26referer=no%26icon%3d' + icon
+        PLAYSD(name,url,iconimage)
     except:
         dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
         quit()
 
 def SCRAPE_CRICBOX(url):
 
+    addDir("[COLOR white][B]Live Channels[/B][/COLOR]",url,298,icon,fanarts,'')
     try:
-        base="http://cricbox.net/"
-        link=open_url(base)
-        r=re.compile('<td style="font-weight:bold;(.+?)/span>',re.DOTALL).findall(link)
-        for i in r:
-            url =re.compile('<a href="(.+?)">').findall(i)[0]
-            url=base+url
-            url = 'plugin://plugin.video.SportsDevil/?mode=1&amp;item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
-            name =re.compile('style=\".+?\">(.+?)<').findall(i)[0]
-            addLink('[COLOR white]' + name + '[/COLOR]',url,2,icon,fanarts,'')
+        base = 'http://cricbox.net/'
+        link = cache.get(open_url,1,base)
+        links=re.compile('<td><i\s.+?href="([^"]+)">.+?>([^<]+).+?px">([^&<]+).+?>([^<]+).+?dt">([\d:]+)',re.DOTALL).findall(link)
+        for url,comp,day,starting,ending in links:
+            url = base + url + '/'
+            addLink("[COLOR blue]%s | [/COLOR][COLOR white]Starts %s %s GMT, ends %s[/COLOR]"%(comp,day,starting,ending),url,306,icon,fanarts,'')
     except:
         dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
         quit()
 
+def SCRAPE_CRICBOX_CHANNELS(url):
+
+    link = cache.get(open_url,1,'http://cricbox.net/')
+    channels = re.compile('class="has-sub".+?href="([^"]+).+?(?:icon|icon2)\s([^"]+)').findall(link)
+    for url,name in channels:
+        url += '/'
+        addLink(name,url,306,icon,fanarts,'')
+        
+def PLAY_CRICBOX(name,url,iconimage):
+
+    try:
+        link = open_url(url)
+        url = re.compile('<iframe.+?src="([^"]+)"').findall(link)[0]
+        link = open_url(url)
+        if 'cricbox.co' in link:
+            url = re.compile('<a\shref="([^"]+)"').findall(link)[0]
+            link = open_url(url)
+            url = re.compile('<iframe.+?src="([^"]+)"').findall(link)[0]
+        url = 'plugin://plugin.video.SportsDevil/?mode=1&item=catcher%3dstreams%26url=' + url + '%26referer=no%26icon%3d' + icon
+        PLAYSD(name,url,iconimage)
+    except:
+        dialog.ok(AddonTitle, "Sorry, we could not find any live links at the moment. Please try again later.")
+        quit()
+        
 def SCRAPE_ARENA_VISION():
 
     result = open_url('http://arenavision.in/schedule-', cookie='beget=begetok')
@@ -3188,10 +3245,15 @@ elif mode==205:SCRAPE_HESGOAL()
 elif mode==206:SCRAPE_HESGOAL_FIND_LINK(name,url,iconimage)
 elif mode==221:SCRAPE_UFC_GETLINK(name,url,iconimage)
 elif mode==222:FIGHTCLUB_SEARCH(url)
+elif mode==298:SCRAPE_CRICBOX_CHANNELS(url)
+elif mode==299:SCRAPE_BIGSPORTS_CHANNELS(url)
+elif mode==300:SCRAPE_BIGSPORTS_GET_LINKS(name,url,iconimage)
 elif mode==301:SCRAPE_BIGSPORTS(url)
 elif mode==302:SCRAPE_CRICBOX(url)
+elif mode==306:PLAY_CRICBOX(name,url,iconimage)
 elif mode==307:soccerstreams.SCRAPE_SOCCERSTREAMS()
 elif mode==308:soccerstreams.SCRAPE_SOCCERSTREAMS_GET_LINKS(name,url,iconimage)
+elif mode==309:PLAY_SPORTSMAMA(name,url,iconimage)
 elif mode==310:SCRAPE_SPORTSMAMA_HOME()
 elif mode==311:SCRAPE_SPORTSMAMA_CHANNELS()
 elif mode==312:SCRAPE_247HD()

@@ -1301,19 +1301,20 @@ def PLAY_CRICBOX(name,url,iconimage):
         
 def SCRAPE_ARENA_VISION():
 
-    result = open_url('http://arenavision.in/schedule-', cookie='beget=begetok')
+    result = open_url('http://arenavision.in/iguide')
     match = re.compile('<tr><td class="auto-style3"(.+?)</tr>',re.DOTALL).findall(result)
 
     for item in match:
         try:
-            date=re.compile('style="width: .+?">(.+?)<').findall(item)[0]   
-            time=re.compile('style="width: .+?">(.+?)<').findall(item)[1]
-            sport=re.compile('style="width: .+?">(.+?)<').findall(item)[2]
-            event=re.compile('style="width: .+?">(.+?)<').findall(item)[3]      
-            game=re.compile('style="width: .+?">(.+?)<').findall(item)[4]
-            channel=re.compile('style="width: .+?">(.+?) ').findall(item)[5] 
+            pars = re.compile('style="width:.+?">(.+?)</td',re.DOTALL).findall(item)
+            date=pars[0]
+            time=pars[1]
+            sport=pars[2]
+            event=pars[3].title()
+            game=pars[4].replace('<br/>',' ').title().replace('-','[COLOR yellow] vs [/COLOR]')
+            channel=pars[5]
             url = event + '|SPLIT|' + channel
-            addLink('[COLOR blue][B]' + game + '[/B][/COLOR] - [COLOR white]' + date + ' | [COLOR orangered][B]' + time + '[/B][/COLOR] | ' + sport + " - " + event + '[/COLOR]',url,97,icon,fanarts)
+            addLink('[COLOR white][B]' + sport + ' - ' + event + '[/COLOR][COLOR blue][B] | ' + game + '[/B][/COLOR] - [COLOR white]' + date + ' | [COLOR orangered][B]' + time + '[/B][/COLOR]',url,97,icon,fanarts)
         except: pass
     kodi_name = GET_KODI_VERSION()
 
@@ -1324,22 +1325,41 @@ def SCRAPE_ARENA_VISION():
     else: xbmc.executebuiltin('Container.SetViewMode(50)')
 
 def SCRAPE_ARENA_VISION_GET_CHANNELS(name,url,iconimage):
-
-    name,url = url.split('|SPLIT|')
     
-    urla = "null"
-    urlb = "null"
+    name,url = url.split('|SPLIT|')
+    links=[]
+    multilink = False
+    if '-' in url or '<br/>' in url:
+        multilink = True
 
-    if "-" in url:
-        urla,urlb = url.split('-')
+    if multilink:
+        lines = url.split('<br/>')
+        for line in lines:
+            chn,lang = line.split(' ')
+            if '-' in chn:
+                chna,chnb = chn.split('-')
+                links.append((chna,lang))
+                links.append((chnb,lang))
+            else:
+                links.append((chn,lang))
+        choices = []
+        lno = 1
+        for link in links:
+            choices.append('[COLOR white]Link %s %s[/COLOR]'%(lno,link[1]))
+            lno += 1
         
-        choice = dialog.select("[COLOR red]Please select an stream[/COLOR]", ['[COLOR white]Link 1[/COLOR]','[COLOR white]Link 2[/COLOR]'])
+        choice = dialog.select("[COLOR red]Please select an stream[/COLOR]", choices)
 
-        if choice == 0: url = 'http://arenavision.in/av' + urla
-        elif choice == 1: url = 'http://arenavision.in/av' + urlb
+        if choice:
+            chn = links[choice][0]
+            if len(chn)<2: chn = '0' + chn
+            url = 'http://arenavision.in/' + chn
         else: quit()
 
-    else: url = 'http://arenavision.in/av' + url
+    else:
+        chn,lang = url.split(' ')
+        if len(chn)<2: chn = '0' + chn
+        url = 'http://arenavision.in/' + chn
     
     SCRAPE_ARENA_VISION_GET_LINK(name,url,iconimage)
     
